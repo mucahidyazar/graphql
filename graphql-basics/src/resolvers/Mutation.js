@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const Mutation = {
   createUser(parent, args, { db }, info) {
-    const { username, email, age, firstName, lastName } = args.data;
+    const { name, email, age, firstName, lastName } = args.data;
     const emailTaken = db.users.some((user) => user.email === email);
 
     if (emailTaken) {
@@ -11,7 +11,7 @@ const Mutation = {
 
     const newUser = {
       id: uuidv4(),
-      username,
+      name,
       email,
       age,
       firstName,
@@ -63,8 +63,8 @@ const Mutation = {
       user.email = data.email;
     }
 
-    if (typeof data.username === "string") {
-      user.username = data.username;
+    if (typeof data.name === "string") {
+      user.name = data.name;
     }
 
     if (typeof !data.age === "undefined") {

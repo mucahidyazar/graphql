@@ -27,7 +27,7 @@ const Query = {
   me() {
     return {
       id: "2",
-      username: "me",
+      name: "me",
       email: "mucahidyazar@gmail.com",
     };
   },
@@ -39,7 +39,7 @@ const Query = {
     }
 
     return db.users.filter((user) => {
-      return user.username.toLowerCase().includes(query.toLowerCase());
+      return user.name.toLowerCase().includes(query.toLowerCase());
     });
   },
   posts(parent, args, { db }, info) {
