@@ -2,11 +2,17 @@ import getUserId from "../utils/getUserId";
 
 const Query = {
   users(parent, args, { prisma }, info) {
-    const opArgs = {};
+    const { first, skip, after, orderBy } = args;
+    const opArgs = {
+      first,
+      skip,
+      after,
+      orderBy,
+    };
 
     if (args.query) {
       opArgs.where = {
-        OR: [{ name_contains: args.query }, { email_contains: args.query }],
+        OR: [{ name_contains: args.query }],
       };
     }
 
@@ -21,15 +27,19 @@ const Query = {
     return me;
   },
   async posts(parent, args, { prisma }, info) {
-    const { query } = args;
+    const { query, first, skip, after, orderBy } = args.query;
 
     const opsArgs = {
       where: {
         published: true,
       },
+      first,
+      skip,
+      after,
+      orderBy,
     };
 
-    if (query) {
+    if (args.query) {
       opArgs.where.OR = [{ title_contains: query }, { body_contains: query }];
     }
 
@@ -37,11 +47,15 @@ const Query = {
     return prisma.query.posts(opsArgs, info);
   },
   async myPosts(parent, args, { prisma, request }, info) {
-    const { query } = args;
+    const { query, first, skip, after, orderBy } = args;
     const userId = getUserId(request);
 
     const opsArgs = {
       where: { author: { id: userId } },
+      first,
+      skip,
+      after,
+      orderBy,
     };
 
     if (query) {
@@ -71,7 +85,16 @@ const Query = {
     return posts[0];
   },
   comments(parent, args, { prisma }, info) {
-    return prisma.query.comments(null, info);
+    const { first, skip, after, orderBy } = args;
+    return prisma.query.comments(
+      {
+        first,
+        skip,
+        after,
+        orderBy,
+      },
+      info
+    );
   },
 };
 

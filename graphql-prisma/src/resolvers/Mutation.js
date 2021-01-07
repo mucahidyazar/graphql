@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import generateToken from "../utils/generateToken";
 import getUserId from "../utils/getUserId";
+import hashPassword from "../utils/hashPassword";
 
 // take in password
 // validate password
@@ -13,7 +15,7 @@ const Mutation = {
       throw new Error("Password must be at least 8 character.");
     }
 
-    const hashedPassword = await bcrypt.hash(args.data.password, 10);
+    const hashedPassword = await hashPassword(args.data.password);
 
     const user = await prisma.mutation.createUser({
       data: {
@@ -22,7 +24,7 @@ const Mutation = {
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, "thisisasecret");
+    const token = generateToken(user.id);
 
     return {
       user,
@@ -44,7 +46,7 @@ const Mutation = {
       throw new Error("Unable to login!");
     }
 
-    const token = jwt.sign({ userId: user.id }, "thisisasecret");
+    const token = generateToken(user.id);
 
     return {
       user,
@@ -67,7 +69,10 @@ const Mutation = {
     const user = await prisma.mutation.updateUser(
       {
         where: { id: userId },
-        data: args.data,
+        data: {
+          ...args.data,
+          password: hashPassword(args.data.password),
+        },
       },
       info
     );
@@ -110,20 +115,33 @@ const Mutation = {
     return post;
   },
   async updatePost(parent, args, { prisma, request }, info) {
+    const { id, data } = args;
     const userId = getUserId(request);
 
     const postExists = await prisma.exists.Post({
-      id: args.id,
+      id: id,
       author: {
         id: userId,
       },
+      published: false,
     });
 
+    const isPublished = await prisma.exists.Post({ id });
+
     if (!postExists) {
-      throw new Error("Unasble to update post!");
+      throw new Error("Unable to update post!");
     }
 
-    const { id, data } = args;
+    if (isPublished && data.published === false) {
+      await prisma.mutation.deleteManyComments({
+        where: {
+          post: {
+            id: id,
+          },
+        },
+      });
+    }
+
     const post = await prisma.mutation.updatePost(
       { where: { id: id }, data: args.data },
       info
@@ -135,6 +153,15 @@ const Mutation = {
     const userId = getUserId(request);
 
     const { text, post } = args.data;
+
+    const postExists = await prisma.exists.Oost({
+      id: post,
+      published: true,
+    });
+
+    if (!postExists) {
+      throw new Error("Post is not published");
+    }
 
     const newComment = {
       text,
